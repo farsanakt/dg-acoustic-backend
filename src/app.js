@@ -6,12 +6,32 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 
-app.use(helmet());
+// ── CORS ── allow all Vercel/localhost origins explicitly
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://dg-acoustic-frontend.vercel.app",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin:      process.env.CLIENT_URL,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Also allow any *.vercel.app preview deployments
+    if (origin.endsWith(".vercel.app")) return callback(null, true);
+    return callback(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
-  methods:     ["GET","POST","PUT","PATCH","DELETE"],
+  methods:     ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
 }));
+
+// Handle preflight OPTIONS requests
+app.options("*", cors());
+
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
