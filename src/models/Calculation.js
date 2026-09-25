@@ -1,104 +1,94 @@
 const mongoose = require("mongoose");
 
-// 8 octave bands: 63, 125, 250, 500, 1000, 2000, 4000, 8000 Hz
 const bandSchema = new mongoose.Schema({
-  hz63:   { type: Number, default: 0 },
-  hz125:  { type: Number, default: 0 },
-  hz250:  { type: Number, default: 0 },
-  hz500:  { type: Number, default: 0 },
-  hz1000: { type: Number, default: 0 },
-  hz2000: { type: Number, default: 0 },
-  hz4000: { type: Number, default: 0 },
-  hz8000: { type: Number, default: 0 },
-}, { _id: false });
+  hz63:0, hz125:0, hz250:0, hz500:0,
+  hz1000:0, hz2000:0, hz4000:0, hz8000:0,
+}, { _id:false });
+
+// Defaults all to Number 0
+Object.keys(bandSchema.obj).forEach(k => { bandSchema.obj[k] = { type:Number, default:0 }; });
 
 const attenuatorSchema = new mongoose.Schema({
-  model:          { type: String, default: "" },
-  width_mm:       { type: Number, default: 0 },
-  height_mm:      { type: Number, default: 0 },
-  length_mm:      { type: Number, default: 0 },
-  pressureDrop_pa:{ type: Number, default: 0 },
-  il:             bandSchema,  // insertion loss per band
-}, { _id: false });
+  model:          { type:String, default:"" },
+  width_mm:       { type:Number, default:0  },
+  height_mm:      { type:Number, default:0  },
+  length_mm:      { type:Number, default:0  },
+  pressureDrop_pa:{ type:Number, default:0  },
+  il:             { type:Object, default:{}  },
+}, { _id:false });
 
 const calculationSchema = new mongoose.Schema({
-  project:  { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
-  noisePath:{ type: String, enum: ["exhaust", "intake", "radiated"], default: "exhaust" },
+  project:   { type:mongoose.Schema.Types.ObjectId, ref:"Project", required:true },
+  noisePath: { type:String, enum:["exhaust","intake","radiated"], default:"exhaust" },
 
-  /* ── Generator ──
-     Per DIESEL_GENERATOR.docx, noise data can be entered in one of 4 ways:
-       swl_db  (Case 1) — Sound Power Level in dB, used directly
-       swl_dba (Case 2) — Sound Power Level in dB(A), A-Weighting corrected
-       spl_db  (Case 3) — Sound Pressure Level in dB, converted via Lw = Lp + 10log10(4πr²)
-       spl_dba (Case 4) — Sound Pressure Level in dB(A), A-Weighting corrected then converted
-     `swl` always holds the final, resulting Sound Power Level in dB that the
-     calculation engine consumes — regardless of which mode was used to enter it.
-     `rawBand` holds exactly what the user typed, in whichever unit `noiseInputType`
-     says, so the form can be reopened and re-edited without losing the original entry. */
+  /* ── Generator — field names match AcousticInputForm exactly ── */
   generator: {
-    equipmentId:   { type: String, default: "" },
-    modelNumber:   { type: String, default: "" },
-    ratedKva:      { type: Number, default: 0 },
-    buildingRef:   { type: String, default: "" },
-    swl_dba:       { type: Number, default: 0 },  // overall SWL dB(A) (summary field, unrelated to per-band entry mode)
-
-    noiseInputType: {
-      type: String,
-      enum: ["swl_db", "swl_dba", "spl_db", "spl_dba"],
-      default: "swl_db",
-    },
-    measurementDistance_m: { type: Number, default: 1 }, // r, used for spl_db & spl_dba (Cases 3 & 4)
-    rawBand:       bandSchema,  // as entered, in the unit implied by noiseInputType
-    swl:           bandSchema,  // ALWAYS the resulting octave-band Sound Power Level in dB
+    equipmentId:          { type:String,  default:"" },
+    modelNumber:          { type:String,  default:"" },
+    ratedKva:             { type:Number,  default:0  },
+    buildingRef:          { type:String,  default:"" },
+    swl_dba:              { type:Number,  default:0  },
+    noiseInputType:       { type:String,  default:"swl_db",
+                            enum:["swl_db","swl_dba","spl_db","spl_dba"] },
+    measurementDistance_m:{ type:Number,  default:1  },
+    rawBand:              { type:Object,  default:{}  }, // user-entered values
+    swl:                  { type:Object,  default:{}  }, // converted SWL dB (sent to engine)
   },
 
-  /* ── Plant room / enclosure ── */
+  /* ── Plant room ── */
   room: {
-    length_m:    { type: Number, default: 0 },
-    width_m:     { type: Number, default: 0 },
-    height_m:    { type: Number, default: 0 },
-    avgAbsCoeff: { type: Number, default: 0.9 },  // average absorption coefficient
+    length_m:    { type:Number, default:0   },
+    width_m:     { type:Number, default:0   },
+    height_m:    { type:Number, default:0   },
+    avgAbsCoeff: { type:Number, default:0.9 },
   },
 
-  /* ── Duct / opening ── */
+  /* ── Duct ── */
   duct: {
-    width_mm:  { type: Number, default: 0 },
-    height_mm: { type: Number, default: 0 },
-    length_m:  { type: Number, default: 0 },
-    lining:    { type: String, enum: ["unlined", "1inch", "2inch"], default: "unlined" },
-    elbows:    { type: Number, default: 0 },
-    terminationType: { type: String, enum: ["free_space", "wall"], default: "wall" },
+    width_mm:        { type:Number, default:0        },
+    height_mm:       { type:Number, default:0        },
+    length_m:        { type:Number, default:0        },
+    lining:          { type:String, default:"unlined",
+                       enum:["unlined","1inch","2inch"] },
+    elbows:          { type:Number, default:0        },
+    terminationType: { type:String, default:"wall",
+                       enum:["wall","free_space"]    },
   },
 
-  /* ── Attenuator / louver ── */
+  /* ── Attenuator ── */
   attenuator: attenuatorSchema,
 
   /* ── Receiver ── */
   receiver: {
-    description: { type: String, default: "" },
-    distance_m:  { type: Number, default: 3 },
-    directivity: { type: Number, default: 2 },    // Q factor (2=half-space)
-    requiredNC:  { type: Number, default: 65 },   // NC limit
-    requiredNR:  { type: Number, default: 65 },   // NR limit
-    required_dba:{ type: Number, default: 65 },   // overall dB(A) limit
+    description: { type:String, default:""  },
+    distance_m:  { type:Number, default:3   },
+    directivity: { type:Number, default:2   },
+    requiredNC:  { type:Number, default:65  },
+    requiredNR:  { type:Number, default:65  },
+    required_dba:{ type:Number, default:65  },
   },
 
-  /* ── Computed results (stored for report) ── */
+  /* ── Computed results ── */
   results: {
-    swlAtDuct:         bandSchema,  // after area correction
-    distanceLoss:      bandSchema,
-    attenuatorLoss:    bandSchema,
-    endReflectionLoss: bandSchema,
-    aWeighting:        bandSchema,
-    lp_at_receiver:    bandSchema,  // final SPL at receiver
-    total_lp_dba:      { type: Number, default: 0 },
-    nc_value:          { type: Number, default: 0 },
-    nr_value:          { type: Number, default: 0 },
-    passes_dba:        { type: Boolean, default: false },
-    additional_reduction_needed: bandSchema,
+    noiseInputType:              { type:String,  default:"swl_db" },
+    swlConverted:                { type:Object,  default:{} },
+    swlAtDuct:                   { type:Object,  default:{} },
+    distanceLoss:                { type:Object,  default:{} },
+    attenuatorLoss:              { type:Object,  default:{} },
+    ductInsertionLoss:           { type:Object,  default:{} },
+    endReflectionLoss:           { type:Object,  default:{} },
+    aWeighting:                  { type:Object,  default:{} },
+    lp_at_receiver:              { type:Object,  default:{} },
+    lp_flat_at_receiver:         { type:Object,  default:{} },
+    total_lp_dba:                { type:Number,  default:0  },
+    nc_value:                    { type:mongoose.Schema.Types.Mixed, default:0 },
+    nr_value:                    { type:mongoose.Schema.Types.Mixed, default:0 },
+    passes_dba:                  { type:Boolean, default:false },
+    additional_reduction_needed: { type:Object,  default:{} },
+    nc_required_curve:           { type:Object,  default:{} },
   },
 
-  calculatedAt: { type: Date },
-}, { timestamps: true });
+  calculatedAt: { type:Date },
+}, { timestamps:true });
 
 module.exports = mongoose.model("Calculation", calculationSchema);
