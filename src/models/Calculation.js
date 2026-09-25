@@ -25,14 +25,31 @@ const calculationSchema = new mongoose.Schema({
   project:  { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
   noisePath:{ type: String, enum: ["exhaust", "intake", "radiated"], default: "exhaust" },
 
-  /* ── Generator ── */
+  /* ── Generator ──
+     Per DIESEL_GENERATOR.docx, noise data can be entered in one of 4 ways:
+       swl_db  (Case 1) — Sound Power Level in dB, used directly
+       swl_dba (Case 2) — Sound Power Level in dB(A), A-Weighting corrected
+       spl_db  (Case 3) — Sound Pressure Level in dB, converted via Lw = Lp + 10log10(4πr²)
+       spl_dba (Case 4) — Sound Pressure Level in dB(A), A-Weighting corrected then converted
+     `swl` always holds the final, resulting Sound Power Level in dB that the
+     calculation engine consumes — regardless of which mode was used to enter it.
+     `rawBand` holds exactly what the user typed, in whichever unit `noiseInputType`
+     says, so the form can be reopened and re-edited without losing the original entry. */
   generator: {
     equipmentId:   { type: String, default: "" },
     modelNumber:   { type: String, default: "" },
     ratedKva:      { type: Number, default: 0 },
     buildingRef:   { type: String, default: "" },
-    swl_dba:       { type: Number, default: 0 },  // overall SWL dB(A)
-    swl:           bandSchema,                     // octave-band SWL
+    swl_dba:       { type: Number, default: 0 },  // overall SWL dB(A) (summary field, unrelated to per-band entry mode)
+
+    noiseInputType: {
+      type: String,
+      enum: ["swl_db", "swl_dba", "spl_db", "spl_dba"],
+      default: "swl_db",
+    },
+    measurementDistance_m: { type: Number, default: 1 }, // r, used for spl_db & spl_dba (Cases 3 & 4)
+    rawBand:       bandSchema,  // as entered, in the unit implied by noiseInputType
+    swl:           bandSchema,  // ALWAYS the resulting octave-band Sound Power Level in dB
   },
 
   /* ── Plant room / enclosure ── */
