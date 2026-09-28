@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-/* ── Reusable octave-band sub-schema ── */
 const bandSchema = new mongoose.Schema({
   hz63:   { type: Number, default: 0 },
   hz125:  { type: Number, default: 0 },
@@ -16,7 +15,6 @@ const calculationSchema = new mongoose.Schema({
   project:   { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
   noisePath: { type: String, enum: ["exhaust","intake","radiated"], default: "exhaust" },
 
-  /* ── Generator ── */
   generator: {
     equipmentId:           { type: String,  default: "" },
     modelNumber:           { type: String,  default: "" },
@@ -26,11 +24,10 @@ const calculationSchema = new mongoose.Schema({
     noiseInputType:        { type: String,  default: "swl_db",
                              enum: ["swl_db","swl_dba","spl_db","spl_dba"] },
     measurementDistance_m: { type: Number,  default: 1  },
-    rawBand:               bandSchema,   // user-typed values (in selected unit)
-    swl:                   bandSchema,   // converted SWL dB (sent to engine)
+    rawBand:               bandSchema,
+    swl:                   bandSchema,
   },
 
-  /* ── Plant room ── */
   room: {
     length_m:    { type: Number, default: 0   },
     width_m:     { type: Number, default: 0   },
@@ -38,7 +35,6 @@ const calculationSchema = new mongoose.Schema({
     avgAbsCoeff: { type: Number, default: 0.9 },
   },
 
-  /* ── Duct ── */
   duct: {
     width_mm:        { type: Number, default: 0 },
     height_mm:       { type: Number, default: 0 },
@@ -48,9 +44,9 @@ const calculationSchema = new mongoose.Schema({
     elbows:          { type: Number, default: 0 },
     terminationType: { type: String, default: "wall",
                        enum: ["wall","free_space"] },
+    coeffA:          bandSchema,   // manufacturer Coeff A for lined duct
   },
 
-  /* ── Attenuator ── */
   attenuator: {
     model:           { type: String, default: "" },
     width_mm:        { type: Number, default: 0  },
@@ -60,34 +56,34 @@ const calculationSchema = new mongoose.Schema({
     il:              bandSchema,
   },
 
-  /* ── Receiver ── */
   receiver: {
-    description: { type: String, default: ""  },
-    distance_m:  { type: Number, default: 3   },
-    directivity: { type: Number, default: 2   },
-    requiredNC:  { type: Number, default: 65  },
-    requiredNR:  { type: Number, default: 65  },
-    required_dba:{ type: Number, default: 65  },
+    description:  { type: String, default: ""  },
+    distance_m:   { type: Number, default: 3   },
+    directivity:  { type: Number, default: 2   },
+    requiredNC:   { type: Number, default: 65  },
+    requiredNR:   { type: Number, default: 65  },
+    required_dba: { type: Number, default: 65  },
   },
 
-  /* ── Computed results ── */
   results: {
-    noiseInputType:              { type: String,  default: "swl_db" },
-    swlConverted:                bandSchema,
-    swlAtDuct:                   bandSchema,
-    distanceLoss:                bandSchema,
-    attenuatorLoss:              bandSchema,
-    ductInsertionLoss:           bandSchema,
-    endReflectionLoss:           bandSchema,
-    aWeighting:                  bandSchema,
-    lp_at_receiver:              bandSchema,
-    lp_flat_at_receiver:         bandSchema,
-    total_lp_dba:                { type: Number,  default: 0     },
-    nc_value:                    { type: mongoose.Schema.Types.Mixed, default: 0 },
-    nr_value:                    { type: mongoose.Schema.Types.Mixed, default: 0 },
-    passes_dba:                  { type: Boolean, default: false  },
-    additional_reduction_needed: bandSchema,
-    nc_required_curve:           bandSchema,
+    noiseInputType:      { type: String,  default: "swl_db" },
+    methodUsed:          { type: String,  default: "distance" },
+    room_volume_m3:      { type: Number,  default: 0 },
+
+    swlConverted:        bandSchema,
+    ductIL:              bandSchema,
+    elbowIL:             bandSchema,
+    endReflectionLoss:   bandSchema,
+    attenuatorIL:        bandSchema,
+    swlAtDuctExit:       bandSchema,
+
+    lp_flat_at_receiver: bandSchema,
+    lp_at_receiver:      bandSchema,
+
+    total_lp_dba:        { type: Number,  default: 0     },
+    nc_value:            { type: mongoose.Schema.Types.Mixed, default: 0 },
+    nr_value:            { type: mongoose.Schema.Types.Mixed, default: 0 },
+    passes_dba:          { type: Boolean, default: false  },
   },
 
   calculatedAt: { type: Date },
