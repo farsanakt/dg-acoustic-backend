@@ -225,6 +225,7 @@ function elbowIL(ductWidth_mm, lining, numElbows) {
   return table[row].map(v => v * numElbows);
 }
 
+
 // ─── End Reflection Loss ──────────────────────────────────────────────────────
 
 /**

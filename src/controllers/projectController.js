@@ -3,6 +3,7 @@ const Project = require("../models/Project");
 const ALLOWED = [
   "jobNumber","name","projectType","clientName","mainContractor","mepContractor",
   "reportNumber","revision","reportDate","siteLocation","equipment","description","status",
+  "module","module2SubType",
 ];
 
 /* ── GET /api/projects ── */
@@ -44,6 +45,9 @@ exports.createProject = async (req, res) => {
     // Clamp equipment to 4
     if (data.equipment) data.equipment = data.equipment.slice(0, 4);
 
+    // module2SubType only relevant for module_2
+    if (data.module !== "module_2") data.module2SubType = "";
+
     const project = await Project.create({
       ...data,
       createdBy: req.user._id,
@@ -73,6 +77,9 @@ exports.updateProject = async (req, res) => {
 
     ALLOWED.forEach(k => { if (req.body[k] !== undefined) project[k] = req.body[k]; });
     if (project.equipment) project.equipment = project.equipment.slice(0, 4);
+
+    // Clear sub-type if switching away from module_2
+    if (req.body.module && req.body.module !== "module_2") project.module2SubType = "";
 
     await project.save();
     res.json({ success: true, project });

@@ -24,6 +24,19 @@ const projectSchema = new mongoose.Schema({
     default: "commercial",
   },
 
+  /* ── Module selection ── */
+  module: {
+    type: String,
+    enum: ["module_1","module_2","module_3","module_4"],
+    default: "module_1",
+  },
+  /* Sub-type for Module 2 */
+  module2SubType: {
+    type: String,
+    enum: ["fcu","fan",""],
+    default: "",
+  },
+
   /* ── Parties ── */
   clientName:      { type: String, required: [true, "Client name required"], trim: true },
   mainContractor:  { type: String, trim: true, default: "" },
@@ -32,7 +45,7 @@ const projectSchema = new mongoose.Schema({
   /* ── Report details ── */
   reportNumber:    { type: String, trim: true, default: "" },
   revision:        { type: String, trim: true, default: "R00" },
-  reportDate:      { type: String, trim: true, default: "" },  // stored as YYYY-MM-DD string
+  reportDate:      { type: String, trim: true, default: "" },
 
   /* ── Site ── */
   siteLocation:    { type: String, trim: true, default: "" },
